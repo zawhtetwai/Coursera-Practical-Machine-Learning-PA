@@ -82,7 +82,7 @@ accurancy<-c(as.numeric(csvPed==csv_set$classe))
 sum(accurancy)*100/nrow(csv_set)
 ```
 
-The accurancy of the model tested on the cross validation dataset was `test_accurancy`. Based on the acurancy check, the estimated error rate is less than 1%.  
+As tested above on the cross validation dataset, the accurancy of the model was high. And the estimated error rate is less than 1%.  
 Due to its low error rate, we would choose the final model produced from random forest modeling approach.  
 
 ###Prediction on the Test Dataset

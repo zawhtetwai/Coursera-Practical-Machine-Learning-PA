@@ -232,7 +232,7 @@ confusionMatrix(csvPed, csv_set$classe)</code></pre>
 accurancy&lt;-c(as.numeric(csvPed==csv_set$classe))
 sum(accurancy)*100/nrow(csv_set)</code></pre>
 <pre><code>## [1] 99.31175</code></pre>
-<p>The accurancy of the model tested on the cross validation dataset was <code>test_accurancy</code>. Based on the acurancy check, the estimated error rate is less than 1%.<br />Due to its low error rate, we would choose the final model produced from random forest modeling approach.</p>
+<p>As tested above on the cross validation dataset, the accurancy of the model was high. And the estimated error rate is less than 1%.<br />Due to its low error rate, we would choose the final model produced from random forest modeling approach.</p>
 </div>
 <div id="prediction-on-the-test-dataset" class="section level3">
 <h3>Prediction on the Test Dataset</h3>
