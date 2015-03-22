@@ -66,7 +66,7 @@ We tested the accuracy on the training dataset first, then on the cross validati
 
 ```{r, echo=TRUE}
 #evaulate the model on the training dataset
-trainPed <- predict(modFit,newdata=train_set[,-ncol(train_set)])
+trainPed <- predict(modelRF,newdata=train_set[,-ncol(train_set)])
 confusionMatrix(trainPed, train_set$classe)
 
 #calculate the accurancy of the model on the training data
@@ -75,7 +75,7 @@ sum(accurancy)*100/nrow(train_set)
 
 #evaluate the model on the testing dataset
 csvPed <- predict(modelRF, newdata=csv_set[,-ncol(csv_set)])
-confusionMatrix(csvtPed, csv_set$classe)
+confusionMatrix(csvPed, csv_set$classe)
 
 #calculate the accurancy of the model on the training data
 accurancy<-c(as.numeric(csvPed==csv_set$classe))
@@ -89,10 +89,19 @@ Due to its low error rate, we would choose the final model produced from random 
 Finally we tested the model on the real test dataset.
 ```{r, echo=TRUE}
 #evaulate the model on the real test dataset
-testingPed <- predict(modelRF, newdata=testing [,-ncol(testing)])
-confusionMatrix(testingPed, testing$classe)
+predictions <- predict(modelRF, newdata=testing)
+predictions
+```
 
-#calculate the accurancy of the final test dataset
-accurancy<-c(as.numeric(testingPed==testing$classe))
-sum(accurancy)*100/nrow(testing)
+###Generate answer files to submit to Coursera
+```{r, echo=TRUE}
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("./answers/problem_id_",i,".txt")
+    write.table(strtrim(x[i],1),file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(predictions)
 ```

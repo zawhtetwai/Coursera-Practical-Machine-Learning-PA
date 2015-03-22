@@ -98,14 +98,162 @@ testing &lt;- testing[,nzv_cols$nzv==FALSE]</code></pre>
 </div>
 <div id="data-partioning-6040" class="section level3">
 <h3>Data Partioning (60/40)</h3>
-<p>We split the training dataset into 2 partiions as 60% and 40%. 1<sup>st</sup> will be used for training while the 2<sup>nd</sup> set will be for cross vaildation.</p>
+<p>We split the training dataset into 2 partiions as 60% and 40%. 1<sup>st</sup> set will be used for training while the 2<sup>nd</sup> set will be for cross vaildation.</p>
 <pre class="r"><code>set.seed(17520)
 inTrain = createDataPartition(training$classe, p=0.60, list=FALSE)
 train_set = training[inTrain,]
-test_set = training[-inTrain,]</code></pre>
+csv_set = training[-inTrain,]</code></pre>
 </div>
-<div id="data-modeling" class="section level3">
-<h3>Data Modeling</h3>
+<div id="model-training" class="section level3">
+<h3>Model Training</h3>
+<p>We will train the model using the random rorests.</p>
+<pre class="r"><code>modelRF &lt;- train(classe ~., method=&quot;rf&quot;, data=train_set, trControl=trainControl(method='cv'), number=5, ntree=250, allowParallel=TRUE)</code></pre>
+<pre><code>## Loading required package: randomForest</code></pre>
+<pre><code>## Warning: package 'randomForest' was built under R version 3.1.3</code></pre>
+<pre><code>## randomForest 4.6-10
+## Type rfNews() to see new features/changes/bug fixes.</code></pre>
+<pre class="r"><code>#display the final model
+varImp(modelRF)</code></pre>
+<pre><code>## rf variable importance
+## 
+##   only 20 most important variables shown (out of 27)
+## 
+##                   Overall
+## roll_belt          100.00
+## yaw_belt            81.71
+## magnet_dumbbell_z   67.46
+## pitch_forearm       62.62
+## pitch_belt          60.80
+## roll_forearm        48.40
+## roll_dumbbell       47.06
+## roll_arm            33.32
+## gyros_belt_z        31.14
+## gyros_dumbbell_y    30.59
+## yaw_dumbbell        29.70
+## magnet_forearm_z    29.51
+## yaw_arm             28.97
+## pitch_dumbbell      26.06
+## magnet_forearm_y    23.95
+## yaw_forearm         19.06
+## pitch_arm           15.87
+## gyros_arm_y         11.81
+## gyros_dumbbell_x    11.60
+## gyros_arm_x         11.39</code></pre>
+<pre class="r"><code>modelRF$finalModel</code></pre>
+<pre><code>## 
+## Call:
+##  randomForest(x = x, y = y, ntree = 250, mtry = param$mtry, number = 5,      allowParallel = TRUE) 
+##                Type of random forest: classification
+##                      Number of trees: 250
+## No. of variables tried at each split: 2
+## 
+##         OOB estimate of  error rate: 0.88%
+## Confusion matrix:
+##      A    B    C    D    E class.error
+## A 3343    2    1    0    2 0.001493429
+## B   15 2251   12    1    0 0.012286090
+## C    0   20 2021   13    0 0.016066212
+## D    1    0   27 1900    2 0.015544041
+## E    1    1    1    5 2157 0.003695150</code></pre>
+<p>We tested the accuracy on the training dataset first, then on the cross validation data set. Based on the random forest approach, the out of sample error should be relatively small. We estimated to be lesser than 5%.</p>
+<pre class="r"><code>#evaulate the model on the training dataset
+trainPed &lt;- predict(modelRF,newdata=train_set[,-ncol(train_set)])
+confusionMatrix(trainPed, train_set$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 3348    0    0    0    0
+##          B    0 2279    0    0    0
+##          C    0    0 2054    0    0
+##          D    0    0    0 1930    0
+##          E    0    0    0    0 2165
+## 
+## Overall Statistics
+##                                      
+##                Accuracy : 1          
+##                  95% CI : (0.9997, 1)
+##     No Information Rate : 0.2843     
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16  
+##                                      
+##                   Kappa : 1          
+##  Mcnemar's Test P-Value : NA         
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Specificity            1.0000   1.0000   1.0000   1.0000   1.0000
+## Pos Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Neg Pred Value         1.0000   1.0000   1.0000   1.0000   1.0000
+## Prevalence             0.2843   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2843   0.1935   0.1744   0.1639   0.1838
+## Detection Prevalence   0.2843   0.1935   0.1744   0.1639   0.1838
+## Balanced Accuracy      1.0000   1.0000   1.0000   1.0000   1.0000</code></pre>
+<pre class="r"><code>#calculate the accurancy of the model on the training data
+accurancy&lt;-c(as.numeric(trainPed==train_set$classe))
+sum(accurancy)*100/nrow(train_set)</code></pre>
+<pre><code>## [1] 100</code></pre>
+<pre class="r"><code>#evaluate the model on the testing dataset
+csvPed &lt;- predict(modelRF, newdata=csv_set[,-ncol(csv_set)])
+confusionMatrix(csvPed, csv_set$classe)</code></pre>
+<pre><code>## Confusion Matrix and Statistics
+## 
+##           Reference
+## Prediction    A    B    C    D    E
+##          A 2227    6    0    0    0
+##          B    2 1505   11    0    1
+##          C    1    7 1351   13    1
+##          D    0    0    6 1273    4
+##          E    2    0    0    0 1436
+## 
+## Overall Statistics
+##                                          
+##                Accuracy : 0.9931         
+##                  95% CI : (0.991, 0.9948)
+##     No Information Rate : 0.2845         
+##     P-Value [Acc &gt; NIR] : &lt; 2.2e-16      
+##                                          
+##                   Kappa : 0.9913         
+##  Mcnemar's Test P-Value : NA             
+## 
+## Statistics by Class:
+## 
+##                      Class: A Class: B Class: C Class: D Class: E
+## Sensitivity            0.9978   0.9914   0.9876   0.9899   0.9958
+## Specificity            0.9989   0.9978   0.9966   0.9985   0.9997
+## Pos Pred Value         0.9973   0.9908   0.9840   0.9922   0.9986
+## Neg Pred Value         0.9991   0.9979   0.9974   0.9980   0.9991
+## Prevalence             0.2845   0.1935   0.1744   0.1639   0.1838
+## Detection Rate         0.2838   0.1918   0.1722   0.1622   0.1830
+## Detection Prevalence   0.2846   0.1936   0.1750   0.1635   0.1833
+## Balanced Accuracy      0.9983   0.9946   0.9921   0.9942   0.9978</code></pre>
+<pre class="r"><code>#calculate the accurancy of the model on the training data
+accurancy&lt;-c(as.numeric(csvPed==csv_set$classe))
+sum(accurancy)*100/nrow(csv_set)</code></pre>
+<pre><code>## [1] 99.31175</code></pre>
+<p>The accurancy of the model tested on the cross validation dataset was <code>test_accurancy</code>. Based on the acurancy check, the estimated error rate is less than 1%.<br />Due to its low error rate, we would choose the final model produced from random forest modeling approach.</p>
+</div>
+<div id="prediction-on-the-test-dataset" class="section level3">
+<h3>Prediction on the Test Dataset</h3>
+<p>Finally we tested the model on the real test dataset.</p>
+<pre class="r"><code>#evaulate the model on the real test dataset
+predictions &lt;- predict(modelRF, newdata=testing)
+predictions</code></pre>
+<pre><code>##  [1] B A B A A E D B A A B C B A E E A B B B
+## Levels: A B C D E</code></pre>
+</div>
+<div id="generate-answer-files-to-submit-to-coursera" class="section level3">
+<h3>Generate answer files to submit to Coursera</h3>
+<pre class="r"><code>pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0(&quot;./answers/problem_id_&quot;,i,&quot;.txt&quot;)
+    write.table(strtrim(x[i],1),file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+
+pml_write_files(predictions)</code></pre>
 </div>
 
 
