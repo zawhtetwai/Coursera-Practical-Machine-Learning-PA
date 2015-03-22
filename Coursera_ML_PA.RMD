@@ -1,0 +1,98 @@
+---
+title: "Behavioural Prediction Model"
+author: "Zaw Htet Wai"
+date: "Friday, Mar 20, 2015"
+output: html_document
+---
+### Background
+People usually quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, we used the data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants to predict the manner in which they did the exercise.  
+
+### Data Preparation
+[Human Activity Recognition](http://groupware.les.inf.puc-rio.br/har) data set from [Groupware](http://groupware.les.inf.puc-rio.br/) was used for this project.  
+The training data is available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv]  
+The testing data is available here: [https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv]  
+
+```{r, echo=TRUE}
+require(caret)
+#read the dataset
+train_data <- read.csv("data/pml-training.csv", stringsAsFactors = FALSE, sep=',', na.strings=c("NA","#DIV/0!",""))
+test_data <- read.csv("data/pml-testing.csv", stringsAsFactors = FALSE, sep=',', na.strings=c("NA","#DIV/0!",""))
+train_data$classe <- as.factor(train_data$classe) 
+```
+
+###Data Cleansing
+Cleaned the data first, then preprocessed the prediction variables by centering and scaling. Columns with Near Zero Variance variables are checked and discard accordingly.
+
+```{r, echo=TRUE}
+#discard the columns with "NA" value
+train_data <- train_data[, colSums(is.na(train_data)) == 0]
+test_data <- test_data[, colSums(is.na(test_data)) == 0]
+
+v <- which(lapply(train_data, class) %in% "numeric")
+preObj <-preProcess(train_data[,v],method=c('center', 'scale'))
+training <- predict(preObj, train_data[,v])
+training$classe <- train_data$classe
+testing <-predict(preObj,test_data[,v])
+
+#discard the columns with Near Zero Variance value TRUE
+nzv_cols <- nearZeroVar(training, freqCut=80/20,uniqueCut=10, saveMetrics=TRUE)
+training <- training[,nzv_cols$nzv==FALSE]
+
+nzv_cols <- nearZeroVar(testing, freqCut=80/20,uniqueCut=10, saveMetrics=TRUE)
+testing <- testing[,nzv_cols$nzv==FALSE]
+```
+
+###Data Partioning (60/40)
+We split the training dataset into 2 partiions as 60% and 40%. 1<sup>st</sup> set will be used for training while the 2<sup>nd</sup> set will be for cross vaildation.
+
+```{r, echo=TRUE}
+set.seed(17520)
+inTrain = createDataPartition(training$classe, p=0.60, list=FALSE)
+train_set = training[inTrain,]
+csv_set = training[-inTrain,]
+```
+
+###Model Training
+We will train the model using the random rorests.
+```{r, echo=TRUE}
+modelRF <- train(classe ~., method="rf", data=train_set, trControl=trainControl(method='cv'), number=5, ntree=250, allowParallel=TRUE)
+
+#display the final model
+varImp(modelRF)
+modelRF$finalModel
+```
+
+We tested the accuracy on the training dataset first, then on the cross validation data set. Based on the random forest approach, the out of sample error should be relatively small. We estimated to be lesser than 5%.  
+
+```{r, echo=TRUE}
+#evaulate the model on the training dataset
+trainPed <- predict(modFit,newdata=train_set[,-ncol(train_set)])
+confusionMatrix(trainPed, train_set$classe)
+
+#calculate the accurancy of the model on the training data
+accurancy<-c(as.numeric(trainPed==train_set$classe))
+sum(accurancy)*100/nrow(train_set)
+
+#evaluate the model on the testing dataset
+csvPed <- predict(modelRF, newdata=csv_set[,-ncol(csv_set)])
+confusionMatrix(csvtPed, csv_set$classe)
+
+#calculate the accurancy of the model on the training data
+accurancy<-c(as.numeric(csvPed==csv_set$classe))
+sum(accurancy)*100/nrow(csv_set)
+```
+
+The accurancy of the model tested on the cross validation dataset was `test_accurancy`. Based on the acurancy check, the estimated error rate is less than 1%.  
+Due to its low error rate, we would choose the final model produced from random forest modeling approach.  
+
+###Prediction on the Test Dataset
+Finally we tested the model on the real test dataset.
+```{r, echo=TRUE}
+#evaulate the model on the real test dataset
+testingPed <- predict(modelRF, newdata=testing [,-ncol(testing)])
+confusionMatrix(testingPed, testing$classe)
+
+#calculate the accurancy of the final test dataset
+accurancy<-c(as.numeric(testingPed==testing$classe))
+sum(accurancy)*100/nrow(testing)
+```
